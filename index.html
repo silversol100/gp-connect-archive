@@ -203,7 +203,7 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding:34px 0 60px}
 <script>
 /* ==================== 설정 ==================== */
 const CONFIG = {
-  ENDPOINT: "https://script.google.com/macros/s/AKfycbw_-m3OHjriaUWfI-HJaWLqk1L97jaDWk5MvWsHDCqWAh9B4VeFUr2Eww8P6bZDaPYx/exec",            /* Apps Script 웹앱 URL을 넣으면 시트 연동(콘텐츠 로드/저장·PV 집계)이 켜집니다 */
+  ENDPOINT: "https://script.google.com/a/macros/bluehole.net/s/AKfycbw_-m3OHjriaUWfI-HJaWLqk1L97jaDWk5MvWsHDCqWAh9B4VeFUr2Eww8P6bZDaPYx/exec",            /* Apps Script 웹앱 URL을 넣으면 시트 연동(콘텐츠 로드/저장·PV 집계)이 켜집니다 */
   ADMIN_KEY: "gpconnect2026"   /* admin 진입 비밀번호. 배포 전 변경하세요 */
 };
 const BASE = "https://krafton.atlassian.net/wiki/spaces/GPN/pages/";
@@ -359,8 +359,6 @@ function railSection(o,items,auto,ranked){
     if(ranked){
       card.classList.add("fcard");
       var rk=document.createElement("span"); rk.className="rank"; rk.textContent=String(idx+1); card.appendChild(rk);
-      var sc=scoreOf(p);
-      if(sc>0){ var vw=document.createElement("span"); vw.className="views"; vw.innerHTML=EYE+"<span>"+sc.toLocaleString()+"</span>"; card.appendChild(vw); }
     }
     return card;
   }
