@@ -74,7 +74,11 @@ header{position:sticky;top:0;z-index:50;background:rgba(244,243,240,.86);backdro
 .card .top{display:flex;align-items:center;gap:8px;font-family:var(--brand);font-size:11px;letter-spacing:.07em;color:var(--muted)}
 .card .top .tag{font-weight:700;color:var(--red)}
 .card .top .dot{width:3px;height:3px;border-radius:50%;background:var(--line)}
-.card h3{font-size:22px;font-weight:700;line-height:1.3;letter-spacing:-.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .labels{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.card .chip{font-family:var(--body);font-size:11.5px;font-weight:600;letter-spacing:0;line-height:1;padding:5px 10px;border-radius:999px;background:rgba(20,20,25,.05);color:var(--muted);white-space:nowrap}
+.card .chip.key{background:var(--chip-tint);color:var(--chip-col)}
+.cat.featured .card .labels{margin-top:10px}
+.card h3{font-size:22px;font-weight:700;line-height:1.3;letter-spacing:-.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
 .card .sum{font-size:14px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .card .go{position:absolute;top:24px;right:24px;color:var(--red);opacity:0;transform:translateX(-4px);transition:opacity .18s ease,transform .18s ease}
 .card:hover .go{opacity:1;transform:none}
@@ -140,6 +144,20 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding:34px 0 60px}
   .admin .row{grid-template-columns:1fr 1fr}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}}
+.filterbar{display:flex;align-items:center;gap:12px}
+.filterbar .filter{flex:1 1 auto;min-width:0}
+.searchbox{position:relative;display:flex;align-items:center;flex:0 0 auto}
+.searchbox .sic{width:15px;height:15px;position:absolute;left:13px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;pointer-events:none}
+.searchbox input{width:200px;height:38px;border:1px solid var(--line);border-radius:999px;background:#fff;padding:0 30px 0 34px;font-family:var(--body);font-size:13px;color:var(--ink);outline:none;transition:border-color .15s}
+.searchbox input:focus{border-color:var(--red)}
+.searchbox .qx{position:absolute;right:7px;width:22px;height:22px;line-height:1;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;border-radius:50%;padding:0}
+.searchbox .qx:hover{background:rgba(20,20,25,.08);color:var(--ink)}
+.clearbtn{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:8px 14px;font-family:var(--body);font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap;transition:.15s}
+.clearbtn:hover{border-color:var(--red);color:var(--red)}
+.noresult{color:var(--muted);font-size:15px;padding:30px 4px}
+.card .labels .chip{cursor:pointer;transition:background .15s,color .15s}
+.card .labels .chip:hover{background:rgba(20,20,25,.14);color:var(--ink)}
+@media(max-width:700px){.filterbar{flex-wrap:wrap;gap:8px}.searchbox{flex:1 1 100%;order:-1}.searchbox input{width:100%}}
 </style>
 </head>
 <body>
@@ -162,7 +180,7 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding:34px 0 60px}
   </div>
 </section>
 
-<div class="filterwrap"><div class="wrap"><div class="filter" id="filter"></div></div></div>
+<div class="filterwrap"><div class="wrap filterbar"><div class="filter" id="filter"></div><div class="searchbox"><svg class="sic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><input id="q" type="text" autocomplete="off" placeholder="태그·제목 검색…"><button id="clearq" class="qx" type="button" aria-label="clear" style="display:none">✕</button></div></div></div>
 
 <main class="wrap" id="sections"></main>
 
@@ -288,6 +306,7 @@ const UI = {
 };
 
 let lang="ko", active="all", pageNum=1;
+let tagFilter="", query="";
 const PER=9;
 const STAR='<svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77 5.82 21l1.18-6.88-5-4.87 7.1-1.01z"/></svg>';
 const STAR_LINE='<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
@@ -295,6 +314,9 @@ const TREND='<svg viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 6"/><
 let AUTO_TIMERS=[];
 function clearAutos(){AUTO_TIMERS.forEach(clearInterval);AUTO_TIMERS=[];}
 let DATA = SEED.map(p=>({...p, clicks:0}));
+const LB = {"757744496":{"ko":["gamescom","이벤트","비하인드"],"en":["gamescom","Event","Behind"]},"757808804":{"ko":["AI","퍼블리싱","KDC Week"],"en":["AI","Publishing","KDC Week"]},"829964372":{"ko":["프로젝트 평가","Deal","팀 소개"],"en":["Evaluation","Deal","Team"]},"831635487":{"ko":["NO LAW","Neon Giant","TGA 2025"],"en":["NO LAW","Neon Giant","TGA 2025"]},"832145619":{"ko":["브랜딩","네이밍","크래블스"],"en":["Branding","Naming","Krabbles"]},"874152631":{"ko":["Project ZETA","MOBA","신작"],"en":["Project ZETA","MOBA","New Title"]},"874152707":{"ko":["눈물을 마시는 새","팬 대담","세계관"],"en":["Bird That Drinks Tears","Fan Talk","Lore"]},"874152794":{"ko":["AI 해커톤","WPS","암스테르담"],"en":["AI Hackathon","WPS","Amsterdam"]},"874152866":{"ko":["Live Creative","비주얼","팀 소개"],"en":["Live Creative","Visuals","Team"]},"874152917":{"ko":["글로벌 오피스","일본·중국","새해"],"en":["Global Office","Japan·China","New Year"]},"880523982":{"ko":["AI 해커톤","업무 자동화","KDC"],"en":["AI Hackathon","Automation","KDC"]},"882223820":{"ko":["게임 추천","GOTY","구성원 참여"],"en":["Game Picks","GOTY","Members"]},"885850905":{"ko":["리더 인터뷰","NAPS","PSM"],"en":["Leader Interview","NAPS","PSM"]},"891075816":{"ko":["OWSC","장르 분석","생존"],"en":["OWSC","Genre","Survival"]},"927010684":{"ko":["AI 해커톤","업무 자동화","KDC"],"en":["AI Hackathon","Automation","KDC"]},"940670665":{"ko":["Subnautica","IP 딥다이브"],"en":["Subnautica","IP Deep Dive"]},"945984027":{"ko":["Project Windless","State of Play","신작 공개"],"en":["Project Windless","State of Play","Reveal"]},"946707832":{"ko":["게임 추천","프랜차이즈 IP","구성원 참여"],"en":["Game Picks","Franchise IP","Members"]},"953740638":{"ko":["PBM","거버넌스","팀 소개"],"en":["PBM","Governance","Team"]},"1011122796":{"ko":["QA","호환성·최적화","팀 소개"],"en":["QA","Compatibility","Team"]},"1012585432":{"ko":["East Publishing","글로벌 시장","인터뷰"],"en":["East Publishing","Global Market","Interview"]},"1062970841":{"ko":["PUBG: BLINDSPOT","라이브 운영","Live Ops"],"en":["PUBG: BLINDSPOT","Live Ops"]},"1074697273":{"ko":["Subnautica 2","얼리 액세스","퍼블리싱"],"en":["Subnautica 2","Early Access","Publishing"]},"1134445295":{"ko":["AI","업무 자동화","Subnautica 2"],"en":["AI","Automation","Subnautica 2"]},"1134445430":{"ko":["협동 게임","Age Twisters","인디"],"en":["Co-op","Age Twisters","Indie"]},"1134445519":{"ko":["온보딩","신규 입사","조직문화"],"en":["Onboarding","New Hires","Culture"]},"1134445656":{"ko":["AI 해커톤","바이브 코딩","협업"],"en":["AI Hackathon","Vibe Coding","Collaboration"]},"757744404-dinkum":{"ko":["Dinkum","Nintendo Switch","인디"],"en":["Dinkum","Nintendo Switch","Indie"]},"757744404-policy":{"ko":["정책","게임 안전","팀 소개"],"en":["Policy","Safety","Team"]}};
+DATA = DATA.map(function(p){var e=LB[p.id]||{};return Object.assign({},p,{lb:e.ko||[], lbe:e.en||[]});});
+
 const ARROW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const EYE='<svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
 
@@ -315,13 +337,25 @@ function render(){
   document.getElementById("foot-brand").innerHTML='<img class="foot-logo-img" src="'+LOGO+'" alt="GP CONNECT">';
   document.getElementById("btn-ko").classList.toggle("on",lang==="ko");
   document.getElementById("btn-en").classList.toggle("on",lang==="en");
-
   const f=document.getElementById("filter"); f.innerHTML="";
-  const mk=(key,label)=>{const b=document.createElement("button");b.className="chip"+(active===key?" on":"");b.textContent=label;b.onclick=()=>{active=key;pageNum=1;render();};f.appendChild(b);};
+  const activeFilter=(!query&&!tagFilter);
+  const mk=(key,label)=>{const b=document.createElement("button");b.className="chip"+((activeFilter&&active===key)?" on":"");b.textContent=label;b.onclick=()=>{active=key;query="";tagFilter="";var qi=document.getElementById("q");if(qi){qi.value="";toggleClear();}pageNum=1;render();};f.appendChild(b);};
   mk("all",u.all); CATS.forEach(c=>mk(c.k,c.en));
-
+  var qi=document.getElementById("q"); if(qi) qi.placeholder=(lang==="en"?"Search tags, titles…":"태그·제목 검색…");
+  renderResults();
+  renderMonths();
+}
+function renderResults(){
   clearAutos();
   const root=document.getElementById("sections"); root.innerHTML="";
+  var mo=document.getElementById("months"); if(mo) mo.style.display=(query||tagFilter)?"none":"";
+  if(query||tagFilter){
+    var items,label;
+    if(tagFilter){ items=DATA.filter(function(p){return tagMatch(p,tagFilter);}).slice().sort(byNew); label=(lang==="en"?"Tag: ":"태그: ")+tagFilter; }
+    else { items=DATA.filter(function(p){return matchQuery(p,query);}).slice().sort(byNew); label=(lang==="en"?'Search “':'검색 “')+query+'”'; }
+    root.appendChild(resultsSection(label, items));
+    return;
+  }
   if(active==="all"){
     var top=DATA.slice().sort(byViews).filter(function(p){return scoreOf(p)>0;}).slice(0,5);
     if(!top.length) top=DATA.slice().sort(byNew).slice(0,5);
@@ -335,7 +369,31 @@ function render(){
     const items=DATA.filter(p=>catsOf(p).indexOf(active)>-1).slice().sort(byNew);
     root.appendChild(gridSection(c, items));
   }
-  renderMonths();
+}
+function tagMatch(p,t){var all=(p.lb||[]).concat(p.lbe||[]);t=String(t).toLowerCase();return all.some(function(x){return String(x).toLowerCase()===t;});}
+function matchQuery(p,q){var norm=function(x){return String(x==null?"":x).toLowerCase().replace(/\s+/g,"");};var qn=norm(q);if(!qn)return true;var hay=norm([p.kt,p.et,p.ks,p.es].concat(p.lb||[],p.lbe||[]).join(" "));return hay.indexOf(qn)>-1;}
+function setTag(t){ tagFilter=t; query=""; var qi=document.getElementById("q"); if(qi){qi.value="";toggleClear();} active="all"; pageNum=1; render(); window.scrollTo({top:0,behavior:"smooth"}); }
+function clearFilter(){ query=""; tagFilter=""; var qi=document.getElementById("q"); if(qi) qi.value=""; toggleClear(); active="all"; pageNum=1; render(); }
+function toggleClear(){ var b=document.getElementById("clearq"), qi=document.getElementById("q"); if(b&&qi) b.style.display=qi.value?"block":"none"; }
+function resultsSection(label,items){
+  const sec=document.createElement("section"); sec.className="cat";
+  const pages=Math.max(1,Math.ceil(items.length/PER));
+  if(pageNum>pages) pageNum=pages;
+  const SIC='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>';
+  const cl=(lang==="en"?"Show all":"전체 보기");
+  sec.innerHTML='<div class="cat-head"><div class="cat-title"><span class="ic" style="background:'+hexA("#E8172B",0.11)+';color:#E8172B">'+SIC+'</span><span class="en">'+esc(label)+'</span><span class="cnt">'+items.length+'</span></div><button class="clearbtn" onclick="clearFilter()">✕ '+cl+'</button></div><div class="grid3"></div>';
+  const grid=sec.querySelector(".grid3");
+  if(!items.length){ grid.innerHTML='<div class="noresult">'+(lang==="en"?"No matching stories.":"일치하는 콘텐츠가 없어요.")+'</div>'; return sec; }
+  items.slice((pageNum-1)*PER,pageNum*PER).forEach(function(p){grid.appendChild(cardEl(p));});
+  if(pages>1){
+    const pg=document.createElement("div"); pg.className="pager";
+    const mkb=function(label,target,dis,onn){var b=document.createElement("button");b.textContent=label;b.disabled=!!dis;if(onn)b.className="on";b.onclick=function(){pageNum=target;render();window.scrollTo({top:0,behavior:"smooth"});};return b;};
+    pg.appendChild(mkb("‹",pageNum-1,pageNum<=1,false));
+    for(var n=1;n<=pages;n++) pg.appendChild(mkb(String(n),n,false,n===pageNum));
+    pg.appendChild(mkb("›",pageNum+1,pageNum>=pages,false));
+    sec.appendChild(pg);
+  }
+  return sec;
 }
 function byNew(a,b){return (Number(b.vol)||0)-(Number(a.vol)||0);}
 function scoreOf(p){return (Number(p.views)||0)||(Number(p.clicks)||0);}
@@ -346,8 +404,12 @@ function cardEl(p){
   const t=lang==="en"?(p.et||p.kt):p.kt;
   const s=lang==="en"?(p.es||p.ks):p.ks;
   const pc=primaryCat(p);
+  var labs=(lang==="en"?(p.lbe&&p.lbe.length?p.lbe:p.lb):(p.lb&&p.lb.length?p.lb:p.lbe))||[];
+  var chips=labs.map(function(x,i){var d=' data-tag="'+esc(x)+'"';return i===0?('<span class="chip key"'+d+' style="background:'+hexA(pc.col,0.12)+';color:'+pc.col+'">'+esc(x)+'</span>'):('<span class="chip"'+d+'>'+esc(x)+'</span>');}).join("");
+  var labelsHTML=labs.length?('<div class="labels">'+chips+'</div>'):"";
   const a=document.createElement("a"); a.className="card"; a.href=linkFor(p); a.target="_blank"; a.rel="noopener";
-  a.innerHTML='<div class="top"><span class="tag" style="color:'+pc.col+'">'+pc.en+'</span><span class="dot"></span><span>Vol.'+esc(p.vol)+'</span><span class="dot"></span><span>'+esc(p.date)+'</span></div><h3>'+esc(t)+'</h3><div class="sum">'+esc(s)+'</div><span class="go" style="color:'+pc.col+'">'+ARROW+'</span>';
+  a.innerHTML='<div class="top"><span class="tag" style="color:'+pc.col+'">'+pc.en+'</span><span class="dot"></span><span>Vol.'+esc(p.vol)+'</span><span class="dot"></span><span>'+esc(p.date)+'</span></div><h3>'+esc(t)+'</h3><div class="sum">'+esc(s)+'</div>'+labelsHTML+'<span class="go" style="color:'+pc.col+'">'+ARROW+'</span>';
+  a.querySelectorAll(".labels .chip").forEach(function(ch){ch.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();setTag(ch.getAttribute("data-tag"));});});
   a.addEventListener("click",function(){trackClick(p);});
   return a;
 }
@@ -450,7 +512,7 @@ function reloadData(){ loadData(true); }
 function loadData(fromAdmin){
   if(!CONFIG.ENDPOINT){ if(fromAdmin) renderAdmin(); return; }
   fetch(CONFIG.ENDPOINT+"?action=data").then(r=>r.json()).then(d=>{
-    if(d&&Array.isArray(d.posts)&&d.posts.length){ DATA=d.posts.map(p=>({...p,vol:Number(p.vol)||p.vol,clicks:Number(p.clicks)||0})); render(); }
+    if(d&&Array.isArray(d.posts)&&d.posts.length){ DATA=d.posts.map(p=>({...p,vol:Number(p.vol)||p.vol,clicks:Number(p.clicks)||0})); DATA=DATA.map(function(p){var e=LB[p.id]||{};return Object.assign({},p,{lb:(p.lb&&p.lb.length?p.lb:e.ko)||[], lbe:(p.lbe&&p.lbe.length?p.lbe:e.en)||[]});}); render(); }
     if(fromAdmin) renderAdmin();
   }).catch(function(){ if(fromAdmin) renderAdmin(); });
 }
@@ -512,6 +574,7 @@ function saveToSheet(){
     .catch(function(e){ alert("저장 중 오류: "+e); });
 }
 
+(function(){var qi=document.getElementById("q");if(qi)qi.addEventListener("input",function(){query=this.value.trim();tagFilter="";pageNum=1;toggleClear();render();});var cb=document.getElementById("clearq");if(cb)cb.onclick=function(){clearFilter();};})();
 render();
 loadData(false);
 if(location.hash==="#admin") openAdmin();
