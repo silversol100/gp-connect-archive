@@ -232,6 +232,32 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding:34px 0 60px}
 .evt-win-body iframe{display:block;width:100%;height:100%;border:0}
 .evt-win-html{padding:18px;overflow:auto;height:100%;box-sizing:border-box;color:var(--ink)}
 .evt-win.drag{opacity:.94}
+
+/* ---- 로딩 스켈레톤 · 페이드인 ---- */
+.sk{display:block;border-radius:8px;background:linear-gradient(90deg,var(--line-soft) 25%,var(--line) 37%,var(--line-soft) 63%);background-size:400% 100%;animation:skShimmer 1.4s ease infinite}
+@keyframes skShimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.card.sk-card{cursor:default;pointer-events:none;box-shadow:none}
+.card.sk-card:hover{transform:none;box-shadow:none}
+.sk-s{width:42%;height:11px}
+.sk-t{width:88%;height:20px}
+.sk-t2{width:64%;height:20px;margin-top:-6px}
+.sk-m{width:76%;height:13px}
+.sk-chips{display:flex;gap:6px;margin-top:auto}
+.sk-c{width:58px;height:22px;border-radius:999px}
+.sk-h{width:150px;height:28px}
+#sections.fade-in{animation:secFade .38s ease both}
+@keyframes secFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.sk{animation:none}#sections.fade-in{animation:none}}
+/* ---- GCL 칩(허브 외부 링크) ---- */
+.chip.ext{display:inline-flex;align-items:center;gap:6px}
+.chip.ext .live-dot{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 rgba(232,23,43,.5);animation:liveDot 1.8s ease-out infinite}
+.chip.ext .arr{font-size:11px;opacity:.7}
+@keyframes liveDot{0%{box-shadow:0 0 0 0 rgba(232,23,43,.45)}70%{box-shadow:0 0 0 6px rgba(232,23,43,0)}100%{box-shadow:0 0 0 0 rgba(232,23,43,0)}}
+@media (prefers-reduced-motion: reduce){.chip.ext .live-dot{animation:none}}
+/* ---- 배너 전체 클릭 ---- */
+.evt-bar-cta{background:transparent;border:0;padding:0;font:inherit;cursor:pointer}
+.evt-banner.clickable{cursor:pointer;transition:filter .15s}
+.evt-banner.clickable:hover{filter:brightness(1.06)}
 </style>
 </head>
 <body>
@@ -318,7 +344,7 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding:34px 0 60px}
 <script>
 /* ==================== 설정 ==================== */
 const CONFIG = {
-  ENDPOINT: "https://script.google.com/a/macros/bluehole.net/s/AKfycbw_-m3OHjriaUWfI-HJaWLqk1L97jaDWk5MvWsHDCqWAh9B4VeFUr2Eww8P6bZDaPYx/exec",            /* Apps Script 웹앱 URL을 넣으면 시트 연동(콘텐츠 로드/저장·PV 집계)이 켜집니다 */
+  ENDPOINT: "https://script.google.com/macros/s/AKfycby0-qkaozJWcPS3GG2vPIgO7ddSOIfoVqIAAuMLquVT5V5ZA2gub9bXoklJeg8vYkEB/exec",            /* Apps Script 웹앱 URL을 넣으면 시트 연동(콘텐츠 로드/저장·PV 집계)이 켜집니다 */
   ADMIN_KEY_SHA256: "bce9efcfe6f29861828d4a0a439c3ccf677bac00f3efcd793d33a8982be2c9d7"   /* admin 비번의 SHA-256. 평문 미보관(정책 준수). 입력값은 메모리에서만 사용 */
 };
 const BASE = "https://krafton.atlassian.net/wiki/spaces/GPN/pages/";
@@ -326,6 +352,8 @@ const BASE = "https://krafton.atlassian.net/wiki/spaces/GPN/pages/";
 /* 이벤트를 '목록'으로 관리합니다. 기간(start~end)이 되면 자동으로 켜지고, 지나면 자동으로 사라집니다. */
 /* 여러 개를 넣어두면(다음 이벤트 미리 등록 가능) 그날 활성인 이벤트가 자동 선택됩니다.               */
 /* 각 이벤트에서 banner / popup 중 원하는 것만 true로 두세요(둘 다 가능).                            */
+/* GCL(GP CONNECT LIVE)은 글이 아니라 Zoom 웨비나 AMA라 허브 게시판 한 곳으로 연결합니다(배너 + 카테고리 칩) */
+const GCL_URL = "https://hub.krafton.com/community/board/conference/17?hiddenQuery=1&page=1&divisionCode=575";
 const EVENTS = [
   {
     id:"anniv-1",              // 이벤트 고유 id (팝업 '하루 숨김' 기억에 사용 — 이벤트마다 다르게)
@@ -339,6 +367,15 @@ const EVENTS = [
     //   url=띄울 이벤트 페이지, w/h=창 크기(px). url 대신 html:"..."로 직접 내용을 넣어도 됩니다.
     ko:{ badge:"1주년", title:"GP CONNECT 아카이브 1주년 🎉", body:"그동안 함께해 주셔서 고마워요. 기념 이벤트가 열렸어요!", cta:"이벤트 보러가기" },
     en:{ badge:"1st Anniversary", title:"GP CONNECT Archive turns 1 🎉", body:"Thanks for being here this year. Join our anniversary event!", cta:"See the event" }
+  }
+  ,{
+    id:"gcl",                  // GP CONNECT LIVE — 상시 배너. 기간 한정 이벤트보다 뒤에 두면 그 기간엔 해당 이벤트가 우선 노출됩니다
+    // start/end 생략 = 상시 노출 (기간을 두려면 start:"YYYY-MM-DD", end:"YYYY-MM-DD" 추가)
+    banner:true, popup:false,
+    bannerClick:true,          // 배너 아무 곳이나 눌러도 link로 이동
+    link:GCL_URL,
+    ko:{ badge:"LIVE", title:"GP CONNECT LIVE(GCL) 다시 보기 — 허브에서 모아 보세요", body:"", cta:"허브에서 보기" },
+    en:{ badge:"LIVE", title:"GP CONNECT LIVE (GCL) — catch every session on HUB", body:"", cta:"View on HUB" }
   }
   // 다음 이벤트 예시(주석 해제 후 값만 수정):
   // ,{ id:"summer-quiz", start:"2026-08-01", end:"2026-08-05", banner:true, popup:false, link:"https://...",
@@ -406,6 +443,9 @@ const SEED = [
 const OVERVIEW = "https://krafton.atlassian.net/wiki/spaces/GPN/overview";
 const W = "https://krafton.atlassian.net/wiki";
 const MONTHS = [
+  {vol:15, date:"2026.10", ku:W+"/spaces/GPN/pages/1289410643", eu:W+"/spaces/GPN/pages/1290354626"},
+  {vol:14, date:"2026.09", ku:W+"/spaces/GPN/pages/1225963135", eu:W+"/spaces/GPN/pages/1261410404"},
+  {vol:13, date:"2026.08", ku:W+"/spaces/GPN/pages/1169504366", eu:W+"/spaces/GPN/pages/1185980847"},
   {vol:12, date:"2026.07", ku:W+"/spaces/GPN/pages/1134444362", eu:W+"/spaces/GPN/pages/1134446282"},
   {vol:11, date:"2026.06", ku:W+"/spaces/GPN/pages/1065456903", eu:W+"/spaces/GPN/pages/1074704995"},
   {vol:10, date:"2026.05", ku:W+"/spaces/GPN/pages/1016745521", eu:W+"/spaces/GPN/pages/1019544867"},
@@ -424,10 +464,10 @@ const LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABLAAAACcCAYAAABvAFKR
 const UI = {
   ko:{ archive:"아카이브", heroT:'<img class="wordmark-logo" src="'+LOGO+'" alt="GP CONNECT"><span class="suffix">아카이브</span>',
        heroS:"매달 발행한 GP CONNECT의 모든 콘텐츠를 카테고리별로 모았습니다.<br>궁금한 것부터 골라 읽어 보세요.",
-       countL:"편 · Vol.3–12", all:"ALL", read:"읽기", foot:"Global Publishing 뉴스레터 아카이브" },
+       countL:"편 · Vol.3–15", all:"ALL", read:"읽기", foot:"Global Publishing 뉴스레터 아카이브" },
   en:{ archive:"Archive", heroT:'<img class="wordmark-logo" src="'+LOGO+'" alt="GP CONNECT"><span class="suffix">Archive</span>',
        heroS:"Every GP CONNECT story, gathered by category.<br>Start wherever you're curious.",
-       countL:"posts · Vol.3–12", all:"ALL", read:"Read", foot:"Global Publishing Newsletter Archive" }
+       countL:"posts · Vol.3–15", all:"ALL", read:"Read", foot:"Global Publishing Newsletter Archive" }
 };
 
 let lang="ko", active="all", pageNum=1;
@@ -445,10 +485,37 @@ const STAR_LINE='<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.
 const TREND='<svg viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg>';
 let AUTO_TIMERS=[];
 function clearAutos(){AUTO_TIMERS.forEach(clearInterval);AUTO_TIMERS=[];}
-let DATA = SEED.map(p=>({...p, clicks:0}));
-const LB = {"757744496":{"ko":["gamescom","이벤트","비하인드"],"en":["gamescom","Event","Behind"]},"757808804":{"ko":["AI","퍼블리싱","KDC Week"],"en":["AI","Publishing","KDC Week"]},"829964372":{"ko":["프로젝트 평가","Deal","팀 소개"],"en":["Evaluation","Deal","Team"]},"831635487":{"ko":["NO LAW","Neon Giant","TGA 2025"],"en":["NO LAW","Neon Giant","TGA 2025"]},"832145619":{"ko":["브랜딩","네이밍","크래블스"],"en":["Branding","Naming","Krabbles"]},"874152631":{"ko":["Project ZETA","MOBA","신작"],"en":["Project ZETA","MOBA","New Title"]},"874152707":{"ko":["눈물을 마시는 새","팬 대담","세계관"],"en":["Bird That Drinks Tears","Fan Talk","Lore"]},"874152794":{"ko":["AI 해커톤","WPS","암스테르담"],"en":["AI Hackathon","WPS","Amsterdam"]},"874152866":{"ko":["Live Creative","비주얼","팀 소개"],"en":["Live Creative","Visuals","Team"]},"874152917":{"ko":["글로벌 오피스","일본·중국","새해"],"en":["Global Office","Japan·China","New Year"]},"880523982":{"ko":["AI 해커톤","업무 자동화","KDC"],"en":["AI Hackathon","Automation","KDC"]},"882223820":{"ko":["게임 추천","GOTY","구성원 참여"],"en":["Game Picks","GOTY","Members"]},"885850905":{"ko":["리더 인터뷰","NAPS","PSM"],"en":["Leader Interview","NAPS","PSM"]},"891075816":{"ko":["OWSC","장르 분석","생존"],"en":["OWSC","Genre","Survival"]},"927010684":{"ko":["AI 해커톤","업무 자동화","KDC"],"en":["AI Hackathon","Automation","KDC"]},"940670665":{"ko":["Subnautica","IP 딥다이브"],"en":["Subnautica","IP Deep Dive"]},"945984027":{"ko":["Project Windless","State of Play","신작 공개"],"en":["Project Windless","State of Play","Reveal"]},"946707832":{"ko":["게임 추천","프랜차이즈 IP","구성원 참여"],"en":["Game Picks","Franchise IP","Members"]},"953740638":{"ko":["PBM","거버넌스","팀 소개"],"en":["PBM","Governance","Team"]},"1011122796":{"ko":["QA","호환성·최적화","팀 소개"],"en":["QA","Compatibility","Team"]},"1012585432":{"ko":["East Publishing","글로벌 시장","인터뷰"],"en":["East Publishing","Global Market","Interview"]},"1062970841":{"ko":["PUBG: BLINDSPOT","라이브 운영","Live Ops"],"en":["PUBG: BLINDSPOT","Live Ops"]},"1074697273":{"ko":["Subnautica 2","얼리 액세스","퍼블리싱"],"en":["Subnautica 2","Early Access","Publishing"]},"1134445295":{"ko":["AI","업무 자동화","Subnautica 2"],"en":["AI","Automation","Subnautica 2"]},"1134445430":{"ko":["협동 게임","Age Twisters","인디"],"en":["Co-op","Age Twisters","Indie"]},"1134445519":{"ko":["온보딩","신규 입사","조직문화"],"en":["Onboarding","New Hires","Culture"]},"1134445656":{"ko":["AI 해커톤","바이브 코딩","협업"],"en":["AI Hackathon","Vibe Coding","Collaboration"]},"757744404-dinkum":{"ko":["Dinkum","Nintendo Switch","인디"],"en":["Dinkum","Nintendo Switch","Indie"]},"757744404-policy":{"ko":["정책","게임 안전","팀 소개"],"en":["Policy","Safety","Team"]}};
+let DATA = [];          /* 부팅 시: 캐시 → (없으면 스켈레톤) → 시트 응답. 시트 실패 시에만 SEED 폴백 */
+let LOADING = false;    /* true면 스켈레톤 표시 */
+const CACHE_KEY = "gpc-data-v1";
+const LB = {"1155698586":{"ko": ["Isometric ARPG", "핵앤슬래시", "Last Epoch", "The Ascent", "TARAE: The Unbound"], "en": ["Isometric ARPG", "Hack and Slash", "Last Epoch", "The Ascent", "TARAE: The Unbound"]},"1155686740":{"ko": ["Subnautica 2", "얼리 액세스", "1.1 업데이트", "오픈 디벨롭먼트", "바이오모드"], "en": ["Subnautica 2", "Early Access", "1.1 Update", "Open Development", "Biomod"]},"1164852763":{"ko": ["Convention Planning Part", "게임스컴 2026", "지스타", "게임쇼 운영", "GPD3"], "en": ["Convention Planning Part", "gamescom 2026", "G-STAR", "Gameshow Operations", "GPD3"]},"1182997520":{"ko": ["게임스컴 2026", "Project ZETA", "NO LAW", "Age Twisters", "TARAE: The Unbound"], "en": ["gamescom 2026", "Project ZETA", "NO LAW", "Age Twisters", "TARAE: The Unbound"]},"1257659560":{"ko": ["게임스컴 2026", "현장 르포", "ONL", "B2C 부스", "Media Day"], "en": ["gamescom 2026", "Field Report", "ONL", "B2C Booth", "Media Day"]},"1214406720":{"ko": ["Age Twisters", "Piccolo Studio", "개발사 인터뷰", "2인 협동", "게임스컴 2026"], "en": ["Age Twisters", "Piccolo Studio", "Developer Interview", "Two-Player Co-op", "gamescom 2026"]},"1226820726":{"ko": ["GPD2 Publishing Management Team", "퍼블리싱 매니지먼트", "출시 준비", "파트너십", "NO LAW"], "en": ["GPD2 Publishing Management Team", "Publishing Management", "Launch Readiness", "Partnership", "NO LAW"]},"1281339613":{"ko": ["Last Epoch", "시즌 5", "서리화신의 분노", "Eleventh Hour Games", "라이브 서비스"], "en": ["Last Epoch", "Season 5", "Rage of the Frostborn", "Eleventh Hour Games", "Live Service"]},"1278739183":{"ko": ["스팀 배급사 할인", "할인 캠페인 설계", "플레이테스트", "타이틀 포트폴리오"], "en": ["Steam Publisher Sale", "Sale Campaign Design", "Playtest", "Title Portfolio"]},"1274583605":{"ko": ["게임 추천", "명절 연휴", "The Jackbox Party Pack", "Big Walk", "Star Wars Zero Company"], "en": ["Game Picks", "Holiday Break", "The Jackbox Party Pack", "Big Walk", "Star Wars Zero Company"]},"1283000482":{"ko": ["Strategic Insights Team", "유저 인사이트", "데이터 분석", "퍼블리싱 의사결정", "GPD1"], "en": ["Strategic Insights Team", "Player Insights", "Data Analysis", "Publishing Decisions", "GPD1"]},"757744496":{"ko":["gamescom","이벤트","비하인드"],"en":["gamescom","Event","Behind"]},"757808804":{"ko":["AI","퍼블리싱","KDC Week"],"en":["AI","Publishing","KDC Week"]},"829964372":{"ko":["프로젝트 평가","Deal","팀 소개"],"en":["Evaluation","Deal","Team"]},"831635487":{"ko":["NO LAW","Neon Giant","TGA 2025"],"en":["NO LAW","Neon Giant","TGA 2025"]},"832145619":{"ko":["브랜딩","네이밍","크래블스"],"en":["Branding","Naming","Krabbles"]},"874152631":{"ko":["Project ZETA","MOBA","신작"],"en":["Project ZETA","MOBA","New Title"]},"874152707":{"ko":["눈물을 마시는 새","팬 대담","세계관"],"en":["Bird That Drinks Tears","Fan Talk","Lore"]},"874152794":{"ko":["AI 해커톤","WPS","암스테르담"],"en":["AI Hackathon","WPS","Amsterdam"]},"874152866":{"ko":["Live Creative","비주얼","팀 소개"],"en":["Live Creative","Visuals","Team"]},"874152917":{"ko":["글로벌 오피스","일본·중국","새해"],"en":["Global Office","Japan·China","New Year"]},"880523982":{"ko":["AI 해커톤","업무 자동화","KDC"],"en":["AI Hackathon","Automation","KDC"]},"882223820":{"ko":["게임 추천","GOTY","구성원 참여"],"en":["Game Picks","GOTY","Members"]},"885850905":{"ko":["리더 인터뷰","NAPS","PSM"],"en":["Leader Interview","NAPS","PSM"]},"891075816":{"ko":["OWSC","장르 분석","생존"],"en":["OWSC","Genre","Survival"]},"927010684":{"ko":["AI 해커톤","업무 자동화","KDC"],"en":["AI Hackathon","Automation","KDC"]},"940670665":{"ko":["Subnautica","IP 딥다이브"],"en":["Subnautica","IP Deep Dive"]},"945984027":{"ko":["Project Windless","State of Play","신작 공개"],"en":["Project Windless","State of Play","Reveal"]},"946707832":{"ko":["게임 추천","프랜차이즈 IP","구성원 참여"],"en":["Game Picks","Franchise IP","Members"]},"953740638":{"ko":["PBM","거버넌스","팀 소개"],"en":["PBM","Governance","Team"]},"1011122796":{"ko":["QA","호환성·최적화","팀 소개"],"en":["QA","Compatibility","Team"]},"1012585432":{"ko":["East Publishing","글로벌 시장","인터뷰"],"en":["East Publishing","Global Market","Interview"]},"1062970841":{"ko":["PUBG: BLINDSPOT","라이브 운영","Live Ops"],"en":["PUBG: BLINDSPOT","Live Ops"]},"1074697273":{"ko":["Subnautica 2","얼리 액세스","퍼블리싱"],"en":["Subnautica 2","Early Access","Publishing"]},"1134445295":{"ko":["AI","업무 자동화","Subnautica 2"],"en":["AI","Automation","Subnautica 2"]},"1134445430":{"ko":["협동 게임","Age Twisters","인디"],"en":["Co-op","Age Twisters","Indie"]},"1134445519":{"ko":["온보딩","신규 입사","조직문화"],"en":["Onboarding","New Hires","Culture"]},"1134445656":{"ko":["AI 해커톤","바이브 코딩","협업"],"en":["AI Hackathon","Vibe Coding","Collaboration"]},"757744404-dinkum":{"ko":["Dinkum","Nintendo Switch","인디"],"en":["Dinkum","Nintendo Switch","Indie"]},"757744404-policy":{"ko":["정책","게임 안전","팀 소개"],"en":["Policy","Safety","Team"]}};
 const SM = {"757744496":{"ks":"쾰른 게임스컴 현장을 만든 GP 구성원들의 무대 뒤 이야기.","es":"The sweat and passion of GP colleagues behind KRAFTON's standout Cologne booth."},"757808804":{"ks":"KDC Week에서 만난 AI 시대, 퍼블리싱의 미래를 이야기하다.","es":"Love Hedman on AI as a colleague that expands global publishing expertise."},"829964372":{"ks":"시장성 있는 프로젝트의 관문을 설계하는 (구)Publishing Evaluation & Deal Team.","es":"The team that designs the gateway for marketable projects."},"831635487":{"ks":"네온 자이언트 신작 'NO LAW', TGA 2025에서 첫 공개.","es":"Neon Giant's NO LAW makes its debut at TGA 2025."},"832145619":{"ks":"구성원이 직접 지은 뉴스레터 이름 'GP CONNECT'와 애칭 '크래블스' 공개.","es":"Members named the newsletter: meet 'GP CONNECT' and 'Krabbles'."},"874152631":{"ks":"익숙한 규칙, 완전히 다른 플레이를 노린 MOBA 신작.","es":"A MOBA that keeps the rules but rewrites the play."},"874152707":{"ks":"'눈물을 마시는 새' 세계관을 파고든 팬 대담 (스포일러 주의).","es":"A deep-dive fan talk into 'The Bird That Drinks Tears' (spoilers)."},"874152794":{"ks":"WPS가 암스테르담에서 연 제2회 WPS AI 해커톤 현장.","es":"WPS's two-week 'AI First' experiment in Amsterdam."},"874152866":{"ks":"라이브 서비스의 시각 경험을 만드는 Live Creative Part 1.","es":"Live Creative Part 1, crafting the visuals of live-service games."},"874152917":{"ks":"새해를 맞은 JP·CN 등 글로벌 오피스의 순간들.","es":"New Year moments from JP, CN, and other global offices."},"880523982":{"ks":"비전공자 두 팀이 반복 업무를 풀러 KDC AI 해커톤에 뛰어든 기록.","es":"Two non-dev teams take on the KDC AI Hackathon."},"882223820":{"ks":"구성원이 고른 2025 인생 게임과 2026 기대작.","es":"Members' favorite games of 2025 and most-anticipated of 2026."},"885850905":{"ks":"NAPS 오누르 타메르, PSM 송원준 신임 리더를 만나다.","es":"Meet new leaders Onur Tamer (NAPS) and Wonjoon Song (PSM)."},"891075816":{"ks":"복합 장르로 신시장을 여는 OWSC의 매력을 파헤치다.","es":"Why the Open World Survival Craft genre keeps pulling us in."},"927010684":{"ks":"김앤정 'BAS', 마지노선 '브랜드 가디언' — 비개발 직군의 자동화 결과물.","es":"Non-dev teams' automation builds from the KDC AI Hackathon."},"940670665":{"ks":"전 세계 1,300만 서브넛을 사로잡은 Subnautica IP의 세계를 파헤치다.","es":"Inside the Subnautica IP that captivated 13M+ Subnauts."},"945984027":{"ks":"'눈물을 마시는 새' 기반 Project Windless, State of Play서 첫 공개.","es":"Project Windless makes its State of Play debut."},"946707832":{"ks":"구성원이 오래 사랑해 온 프랜차이즈 IP와 그 이유.","es":"The franchise IPs members have loved, and why they last."},"953740638":{"ks":"GP의 운영 프로세스와 거버넌스를 설계하는 PBM Part.","es":"The PBM Part designing GP's operations and governance."},"1011122796":{"ks":"전 세계 기기 환경에서 게임이 안정적으로 돌게 하는 C&O QA 팀.","es":"The QA team ensuring games run smoothly across every device."},"1012585432":{"ks":"EPS 정수영 본부장이 짚는 CN·TW·JP·SEA 시장 인사이트.","es":"EPS head Sue Jong on the CN·TW·JP·SEA markets."},"1062970841":{"ks":"PUBG: BLINDSPOT 라이브 운영 54일에서 얻은 배움의 기록.","es":"54 days of live-ops learnings from PUBG: BLINDSPOT."},"1074697273":{"ks":"Subnautica 2 얼리 액세스 런칭과 그 뒤의 퍼블리싱 이야기.","es":"The publishing story behind Subnautica 2's Early Access launch."},"1134445295":{"ks":"Subnautica 2 출시 데이터를 자동화한 네 사람의 일하는 방식.","es":"Four people who automated the flood of Subnautica 2 launch data."},"1134445430":{"ks":"'나이를 비트는' 조작으로 함께해야만 나아가는 2인 협동작.","es":"A two-player co-op where you advance only by twisting age together."},"1134445519":{"ks":"신규 구성원 5인이 트레이닝·밍글링·컬처링으로 스며든 4일.","es":"Five new members' four-day journey into GP."},"1134445656":{"ks":"AI 해커톤 두 팀의 협업 바이브 코딩 도전기.","es":"Two GP teams take on collaborative vibe coding at the AI hackathon."},"757744404-dinkum":{"ks":"인디 생활 시뮬레이션 딩컴이 11월 닌텐도 스위치로 확장합니다.","es":"KRAFTON's indie hit expands from PC to Nintendo Switch on November 6."},"757744404-policy":{"ks":"게임을 안전하게, 정책으로 든든하게 뒷받침하는 Service Policy Team.","es":"Keeping games safe, backed by solid policy — the team behind the scenes."}};
-DATA = DATA.map(function(p){var e=LB[p.id]||{};return Object.assign({},p,{lb:(p.lb&&p.lb.length?p.lb:(e.ko||[])), lbe:(p.lbe&&p.lbe.length?p.lbe:(e.en||[]))});});
+function seedData(){
+  return SEED.map(function(p){var e=LB[p.id]||{};return Object.assign({},p,{clicks:0,lb:(p.lb&&p.lb.length?p.lb:(e.ko||[])), lbe:(p.lbe&&p.lbe.length?p.lbe:(e.en||[]))});});
+}
+/* 시트 응답(raw posts) → 화면용 DATA. 시트 labels/labels_en 우선, 없으면 LB 폴백 */
+function normPosts(posts){
+  var sp=function(v){return v?String(v).split(",").map(function(x){return x.trim();}).filter(Boolean):[];};
+  return posts.map(function(p){
+    var e=LB[p.id]||{};
+    var slb=sp(p.labels), slbe=sp(p.labels_en);
+    var lb=slb.length?slb:((p.lb&&p.lb.length)?p.lb:(e.ko||[]));
+    var lbe=slbe.length?slbe:((p.lbe&&p.lbe.length)?p.lbe:(e.en||[]));
+    var sm=SM[p.id];
+    return Object.assign({},p,{vol:Number(p.vol)||p.vol,clicks:Number(p.clicks)||0,lb:lb,lbe:lbe,ks:sm?sm.ks:p.ks,es:sm?sm.es:p.es});
+  });
+}
+/* 콘텐츠 서명(clicks·views 제외) — 캐시와 같으면 다시 그리지 않아 깜빡임 방지 */
+function sigOf(posts){
+  try{return JSON.stringify(posts.map(function(p){var o=Object.assign({},p);delete o.clicks;delete o.views;return o;}));}catch(e){return "";}
+}
+function readCache(){
+  try{var c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");return (c&&Array.isArray(c.posts)&&c.posts.length)?c.posts:null;}catch(e){return null;}
+}
+function writeCache(posts){
+  try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),posts:posts}));}catch(e){}
+}
+let RAW_SIG = "";
 
 const ARROW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const EYE='<svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -475,6 +542,7 @@ function render(){
   const activeFilter=(!query&&!tagFilter);
   const mk=(key,label)=>{const b=document.createElement("button");b.className="chip"+((activeFilter&&!showSaved&&active===key)?" on":"");b.textContent=label;b.onclick=()=>{active=key;query="";tagFilter="";showSaved=false;var qi=document.getElementById("q");if(qi){qi.value="";toggleClear();}pageNum=1;render();};f.appendChild(b);};
   mk("all",u.all); CATS.forEach(c=>mk(c.k,c.en));
+  (function(){var b=document.createElement("button");b.type="button";b.className="chip ext";b.title=(lang==="en"?"All GP CONNECT LIVE sessions (HUB)":"GP CONNECT LIVE 전체 보기 (허브)");b.innerHTML='<span class="live-dot"></span>GCL<span class="arr">\u2197</span>';b.onclick=function(){window.open(GCL_URL,"_blank","noopener");};f.appendChild(b);})();
   (function(){var b=document.createElement("button");b.className="chip"+((activeFilter&&showSaved)?" on":"");b.innerHTML=(lang==="en"?"\uD83D\uDD16 Bookmarks":"\uD83D\uDD16 북마크")+' <span class="bm-cnt">'+SAVED.size+'</span>';b.onclick=function(){showSaved=true;active="all";query="";tagFilter="";var qi=document.getElementById("q");if(qi){qi.value="";toggleClear();}pageNum=1;render();};f.appendChild(b);})();
   var qi=document.getElementById("q"); if(qi) qi.placeholder=(lang==="en"?"Search tags, titles…":"태그·제목 검색…");
   renderResults();
@@ -485,6 +553,8 @@ function renderResults(){
   clearAutos();
   const root=document.getElementById("sections"); root.innerHTML="";
   var mo=document.getElementById("months"); if(mo) mo.style.display=(query||tagFilter||showSaved)?"none":"";
+  if(LOADING){ root.setAttribute("aria-busy","true"); root.appendChild(skeletonEl()); return; }
+  root.removeAttribute("aria-busy");
   if(showSaved){ var _sv=DATA.filter(isSaved).slice().sort(byNew); root.appendChild(savedSection(_sv)); return; }
   if(query||tagFilter){
     var items,label;
@@ -506,6 +576,20 @@ function renderResults(){
     const items=DATA.filter(p=>catsOf(p).indexOf(active)>-1).slice().sort(byNew);
     root.appendChild(gridSection(c, items));
   }
+}
+function skeletonEl(){
+  var frag=document.createElement("div");
+  var card=function(){return '<div class="card sk-card" aria-hidden="true"><span class="sk sk-s"></span><span class="sk sk-t"></span><span class="sk sk-t2"></span><span class="sk sk-m"></span><span class="sk-chips"><span class="sk sk-c"></span><span class="sk sk-c"></span></span></div>';};
+  var head='<div class="cat-head"><div class="cat-title"><span class="sk sk-h"></span></div></div>';
+  var many=function(n){var h="";for(var i=0;i<n;i++)h+=card();return h;};
+  if(active==="all"&&!query&&!tagFilter&&!showSaved){
+    frag.innerHTML='<section class="cat featured">'+head+'<div class="rail">'+many(4)+'</div></section>'
+      +'<section class="cat">'+head+'<div class="rail">'+many(4)+'</div></section>'
+      +'<section class="cat">'+head+'<div class="rail">'+many(4)+'</div></section>';
+  } else {
+    frag.innerHTML='<section class="cat">'+head+'<div class="grid3">'+many(6)+'</div></section>';
+  }
+  return frag;
 }
 function tagMatch(p,t){var all=(p.lb||[]).concat(p.lbe||[]);t=String(t).toLowerCase();return all.some(function(x){return String(x).toLowerCase()===t;});}
 function matchQuery(p,q){var norm=function(x){return String(x==null?"":x).toLowerCase().replace(/\s+/g,"");};var qn=norm(q);if(!qn)return true;var hay=norm([p.kt,p.et,p.ks,p.es].concat(p.lb||[],p.lbe||[]).join(" "));return hay.indexOf(qn)>-1;}
@@ -622,13 +706,25 @@ function gridSection(c,items){
   }
   return sec;
 }
+/* 시트 'months' 시트(자동 수집이 랜딩 페이지를 기록)가 주는 월호 목록을 MONTHS에 병합 → 새 호가 자동으로 추가됨 */
+function mergeMonths(list){
+  if(!Array.isArray(list)||!list.length) return false;
+  var by={}; MONTHS.forEach(function(m){by[m.vol]=m;});
+  var changed=false;
+  list.forEach(function(m){ var v=Number(m.vol); if(!v||!m.ku) return;
+    var o={vol:v,date:m.date||ymOf(v),ku:/^https?:/.test(m.ku)?m.ku:BASE+m.ku,eu:m.eu?(/^https?:/.test(m.eu)?m.eu:BASE+m.eu):(by[v]&&by[v].eu)||""};
+    if(!by[v]){changed=true;} by[v]=Object.assign({},by[v]||{},o); });
+  var arr=Object.keys(by).map(function(k){return by[k];}).sort(function(a,b){return b.vol-a.vol;});
+  MONTHS.length=0; arr.forEach(function(m){MONTHS.push(m);});
+  return changed;
+}
 function renderMonths(){
   const el=document.getElementById("months"); if(!el) return;
   if(active!=="all"){ el.style.display="none"; el.innerHTML=""; return; }
   el.style.display="";
   const title=lang==="en"?"Monthly Newsletters (Wiki)":"월별 뉴스레터 (위키)";
   let h='<h4>'+title+'</h4><div class="list">';
-  MONTHS.forEach(function(m){var u=lang==="en"?m.eu:m.ku;h+='<a href="'+u+'" target="_blank" rel="noopener"><b>Vol.'+m.vol+'</b><span class="d">'+m.date+'</span></a>';});
+  MONTHS.forEach(function(m){var u=lang==="en"?m.eu:m.ku;if(!u) return; h+='<a href="'+u+'" target="_blank" rel="noopener"><b>Vol.'+m.vol+'</b><span class="d">'+m.date+'</span></a>';});
   h+='<a class="all" href="'+OVERVIEW+'" target="_blank" rel="noopener">'+(lang==="en"?"All issues \u2197":"전체 아카이브 \u2197")+'</a></div>';
   el.innerHTML=h;
 }
@@ -672,11 +768,45 @@ function trackClick(p){
 /* ==================== 시트 연동 ==================== */
 function reloadData(){ loadData(true); }
 function loadData(fromAdmin){
-  if(!CONFIG.ENDPOINT){ if(fromAdmin) renderAdmin(); return; }
-  fetch(CONFIG.ENDPOINT+"?action=data").then(r=>r.json()).then(d=>{
-    if(d&&Array.isArray(d.posts)&&d.posts.length){ DATA=d.posts.map(p=>({...p,vol:Number(p.vol)||p.vol,clicks:Number(p.clicks)||0})); DATA=DATA.map(function(p){var e=LB[p.id]||{};var sp=function(v){return v?String(v).split(",").map(function(x){return x.trim();}).filter(Boolean):[];};var slb=sp(p.labels),slbe=sp(p.labels_en);var lb=slb.length?slb:((p.lb&&p.lb.length)?p.lb:(e.ko||[]));var lbe=slbe.length?slbe:((p.lbe&&p.lbe.length)?p.lbe:(e.en||[]));var sm=SM[p.id];return Object.assign({},p,{lb:lb,lbe:lbe,ks:sm?sm.ks:p.ks,es:sm?sm.es:p.es});}); render(); }
+  if(!CONFIG.ENDPOINT){ if(LOADING){ paintData(seedData()); } if(fromAdmin) renderAdmin(); return; }
+  var ctl=("AbortController" in window)?new AbortController():null;
+  var to=setTimeout(function(){ if(ctl) ctl.abort(); }, 10000);   /* 10초 넘으면 SEED 폴백 */
+  fetch(CONFIG.ENDPOINT+"?action=data", ctl?{signal:ctl.signal}:{}).then(function(r){return r.json();}).then(function(d){
+    clearTimeout(to);
+    if(d&&Array.isArray(d.months)){ try{localStorage.setItem("gpc-months-v1",JSON.stringify(d.months));}catch(e){} if(mergeMonths(d.months)&&!LOADING) renderMonths(); }
+    if(d&&Array.isArray(d.posts)&&d.posts.length){
+      writeCache(d.posts);
+      var sig=sigOf(d.posts);
+      if(LOADING||fromAdmin||sig!==RAW_SIG){ RAW_SIG=sig; paintData(normPosts(d.posts)); }
+      else {
+        /* 콘텐츠 동일(클릭 수만 변동) → 다시 그리지 않고 값만 갱신. 다음 화면 전환 때 반영 */
+        var fresh={}; d.posts.forEach(function(p){fresh[String(p.id)]=p;});
+        DATA.forEach(function(p){var f=fresh[String(p.id)]; if(f){p.clicks=Number(f.clicks)||0; p.views=f.views;}});
+      }
+    } else if(LOADING){ paintData(seedData()); }
     if(fromAdmin) renderAdmin();
-  }).catch(function(){ if(fromAdmin) renderAdmin(); });
+  }).catch(function(){ clearTimeout(to); if(LOADING) paintData(seedData()); if(fromAdmin) renderAdmin(); });
+}
+/* 데이터 반영 + (스켈레톤에서 넘어올 때만) 부드럽게 페이드인 */
+function paintData(list){
+  var wasLoading=LOADING;
+  DATA=list; LOADING=false;
+  render();
+  if(wasLoading){
+    var sec=document.getElementById("sections");
+    if(sec){ sec.classList.remove("fade-in"); void sec.offsetWidth; sec.classList.add("fade-in");
+      sec.addEventListener("animationend",function h(){sec.classList.remove("fade-in");sec.removeEventListener("animationend",h);}); }
+  }
+}
+/* 부팅: 캐시가 있으면 즉시 그리고 뒤에서 조용히 갱신 / 없으면 스켈레톤 → 시트 응답 */
+function boot(){
+  try{ mergeMonths(JSON.parse(localStorage.getItem("gpc-months-v1")||"[]")); }catch(e){}
+  var cached=CONFIG.ENDPOINT?readCache():null;
+  if(cached){ RAW_SIG=sigOf(cached); DATA=normPosts(cached); LOADING=false; }
+  else if(CONFIG.ENDPOINT){ LOADING=true; }
+  else { DATA=seedData(); }
+  render();
+  loadData(false);
 }
 
 /* ==================== admin ==================== */
@@ -736,7 +866,7 @@ function saveToSheet(){
   if(!CONFIG.ENDPOINT){ alert("엔드포인트가 설정되지 않았습니다. Apps Script 웹앱 URL을 CONFIG.ENDPOINT에 넣어주세요."); return; }
   const clean=DATA.map(function(r){var o=Object.assign({},r);delete o.clicks;return o;});
   fetch(CONFIG.ENDPOINT,{method:"POST",body:JSON.stringify({action:"save",key:ADMIN_PW,posts:clean})})
-    .then(r=>r.json()).then(function(d){ alert(d&&d.ok?"시트에 저장했습니다.":"저장 실패: "+((d&&d.error)||"unknown")); })
+    .then(r=>r.json()).then(function(d){ alert(d&&d.ok?"시트에 저장했습니다.":"저장 실패: "+((d&&d.error)||"unknown")); if(d&&d.ok) loadData(true); })
     .catch(function(e){ alert("저장 중 오류: "+e); });
 }
 
@@ -753,7 +883,8 @@ function activeEvent(){
   var now=new Date();
   for(var i=0;i<EVENTS.length;i++){
     var ev=EVENTS[i]; if(!ev||ev.on===false) continue;
-    try{ var s=new Date(ev.start+"T00:00:00"), e=new Date(ev.end+"T23:59:59"); if(now>=s&&now<=e) return ev; }catch(x){}
+    try{ var s=ev.start?new Date(ev.start+"T00:00:00"):null, e=ev.end?new Date(ev.end+"T23:59:59"):null;
+      if((!s||now>=s)&&(!e||now<=e)) return ev; }catch(x){}
   }
   return null;
 }
@@ -802,7 +933,10 @@ function initEvent(){
       bar.innerHTML='<div class="evt-bar-in"><span class="evt-badge">'+esc(t.badge)+'</span><span class="evt-bar-title">'+esc(t.title)+'</span>'+(hasCta?'<button type="button" class="evt-bar-cta evt-cta">'+esc(t.cta)+'</button>':'')+'<button class="evt-bar-x" aria-label="close">\u2715</button></div>';
       document.body.insertBefore(bar, document.body.firstChild);
       bar.querySelector(".evt-bar-x").addEventListener("click",function(){bar.remove();try{sessionStorage.setItem(barKey,"1");}catch(e){}});
-      var bc=bar.querySelector(".evt-cta"); if(bc) bc.addEventListener("click",fireCta);
+      var bc=bar.querySelector(".evt-cta"); if(bc) bc.addEventListener("click",function(e){e.stopPropagation();fireCta();});
+      if(ev.bannerClick&&hasCta){ bar.classList.add("clickable"); bar.setAttribute("role","link"); bar.tabIndex=0;
+        bar.addEventListener("click",function(e){ if(e.target.closest(".evt-bar-x")) return; fireCta(); });
+        bar.addEventListener("keydown",function(e){ if(e.key==="Enter") fireCta(); }); }
     }
   }
   // 팝업 (하루 숨김)
@@ -817,8 +951,7 @@ function initEvent(){
   document.getElementById("evt-close").addEventListener("click",closePop);
   var pc=mask.querySelector(".evt-cta"); if(pc) pc.addEventListener("click",function(){ closePop(); fireCta(); });
 }
-render();
-loadData(false);
+boot();
 initEvent();
 if(location.hash==="#admin") openAdmin();
 </script>
